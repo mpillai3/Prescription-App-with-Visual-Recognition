@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     String dayFrequency;
     String frequency;
     List<FirebaseVisionText.TextBlock> blocks;
+    private String currentPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,8 +54,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         imageView = findViewById(R.id.imageView);
+
         captureButton = findViewById(R.id.takePicture);
+
         detectButton = findViewById(R.id.detectText);
+        detectButton.setEnabled(false);
+
         recognizedText = findViewById(R.id.recognizedText);
 
         /*
@@ -65,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 dispatchTakePictureIntent();
                 recognizedText.setText("");
+                detectButton.setEnabled(true);
             }
         });
 
@@ -75,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 detectTextFromImage();
+                detectButton.setEnabled(false);
             }
         });
     }
@@ -88,7 +95,8 @@ public class MainActivity extends AppCompatActivity {
         Task<FirebaseVisionText> firebaseVisionTextTask = firebaseVisionTextRecognizer.processImage(firebaseVisionImage).addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
             @Override
             public void onSuccess(FirebaseVisionText firebaseVisionText) {
-                displayText(firebaseVisionText);
+                categorizeBlocks(firebaseVisionText);
+                displayText();
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -101,21 +109,19 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
-     * @param firebaseVisionText - The data inside the image
      */
-    private void displayText(FirebaseVisionText firebaseVisionText) {
-       String finalText = "Medicine Name: " + blocks.get(medicineNameBlock).getText() + "\n" + "frequency: " + frequency +"\n" + "Day Frequency: " + dayFrequency
+    private void displayText() {
+        String finalText = "Medicine Name: " + blocks.get(medicineNameBlock).getText() + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
                 + "\n" + "unit of measure: " + unitOfMeasure + "\n" + "number of units: " + numberOfUnits;
         recognizedText.setText(finalText);
     }
-    
-    
-    
+
+
     /*
     this is code to categorize the blocks into the ones that are useful to us - the textblock with the name of the medicine and
     the text block with the directions of use
     */
-        private void categorizeBlocks(FirebaseVisionText firebaseVisionText) {
+    private void categorizeBlocks(FirebaseVisionText firebaseVisionText) {
 
         blocks = firebaseVisionText.getTextBlocks();
         if (blocks.isEmpty())
@@ -132,22 +138,14 @@ public class MainActivity extends AppCompatActivity {
                         if (word == "take" || word == "taken") {
                             directionsOfUseBlock = i;
                             extractDetails(blocks);
-                        }
-                        else if (word.substring(word.length() - 2, word.length() - 1) == "mg" || (word.substring(word.length() - 2, word.length() - 1) == "ml")) {
+                        } else if (word.length() > 1 && (word.substring(word.length() - 2, word.length() - 1) == "mg" || (word.substring(word.length() - 2, word.length() - 1) == "ml"))) {
+                            medicineNameBlock = i;
+                        } else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1) == "g" || (word.substring(word.length() - 1, word.length() - 1) == "l"))) {
                             medicineNameBlock = i;
                         }
-                        else if (word.substring(word.length() - 1, word.length() - 1) == "g" || (word.substring(word.length() - 1, word.length() - 1) == "l")) {
-                            medicineNameBlock = i;
-                        }
-
                     }
-
                 }
-
-
             }
-    }
-
     }
 
     /**
@@ -194,61 +192,64 @@ public class MainActivity extends AppCompatActivity {
 
             for (int k = 0; k < elements.size(); k++) {
                 String word = elements.get(k).getText().toLowerCase();
-                String prevWord = elements.get(k-1).getText().toLowerCase();
-                switch(word){
-                    case "daily" : dayFrequency = word;
-                    case "weekly": dayFrequency = word;
-                    case "monthly": dayFrequency = word;
-                    case "day" :
+                String prevWord = elements.get(k - 1).getText().toLowerCase();
+                switch (word) {
+                    case "daily":
+                        dayFrequency = word;
+                    case "weekly":
+                        dayFrequency = word;
+                    case "monthly":
+                        dayFrequency = word;
+                    case "day":
 
-                        if (prevWord == "a"){
+                        if (prevWord == "a") {
                             dayFrequency = "daily";
                         }
-                    case "week" :
-                        if (prevWord == "a"){
+                    case "week":
+                        if (prevWord == "a") {
                             dayFrequency = "weekly";
                         }
-                    case "month" :
-                        if (prevWord == "a"){
+                    case "month":
+                        if (prevWord == "a") {
                             dayFrequency = "monthly";
                         }
-                    case "once": frequency="1";
-                    case "twice": frequency="2";
-                    case "thrice": frequency="3";
-                    case "time" : frequency="1";
+                    case "once":
+                        frequency = "1";
+                    case "twice":
+                        frequency = "2";
+                    case "thrice":
+                        frequency = "3";
+                    case "time":
+                        frequency = "1";
                     case "times":
                         if (checkIfWordNumber(prevWord)) { //checks if its a number spelt out as a word
                             frequency = convertWordNumber(prevWord); //converts the word into a number but in string format
-                        }
-                        else if (checkIfNumber(prevWord)){
+                        } else if (checkIfNumber(prevWord)) {
                             frequency = prevWord;
                         }
-                    case "tablet": numberOfUnits="1"; unitOfMeasure = word;
-                    case "capsule": numberOfUnits="1"; unitOfMeasure = word;
+                    case "tablet":
+                        numberOfUnits = "1";
+                        unitOfMeasure = word;
+                    case "capsule":
+                        numberOfUnits = "1";
+                        unitOfMeasure = word;
                     case "tablets":
-                        unitOfMeasure="tablet";
+                        unitOfMeasure = "tablet";
                         if (checkIfWordNumber(prevWord)) { //checks if its a number spelt out as a word
                             numberOfUnits = convertWordNumber(prevWord); //converts the word into a number but in string format
-                        }
-                        else if (checkIfNumber(prevWord)){
+                        } else if (checkIfNumber(prevWord)) {
                             numberOfUnits = prevWord;
                         }
                     case "capsules":
                         unitOfMeasure = "capsule";
                         if (checkIfWordNumber(prevWord)) { //checks if its a number spelt out as a word
                             numberOfUnits = convertWordNumber(prevWord); //converts the word into a number but in string format
-                        }
-                        else if (checkIfNumber(prevWord)){
+                        } else if (checkIfNumber(prevWord)) {
                             numberOfUnits = prevWord;
                         }
 
 
-
-
                 }
-
-
-
 
 
             }
@@ -258,20 +259,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private boolean checkIfWordNumber(String prevWord) {
-        switch(prevWord){
-            case "one": return true;
-            case "two": return true;
-            case "three": return true;
-            case "four": return true;
-            case "five": return true;
-            case "six": return true;
-            case "seven": return true;
-            case "eight": return true;
-            case "nine": return true;
-            case "ten": return true;
-            default: return false;
+        switch (prevWord) {
+            case "one":
+                return true;
+            case "two":
+                return true;
+            case "three":
+                return true;
+            case "four":
+                return true;
+            case "five":
+                return true;
+            case "six":
+                return true;
+            case "seven":
+                return true;
+            case "eight":
+                return true;
+            case "nine":
+                return true;
+            case "ten":
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -303,20 +314,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-        private boolean checkIfNumber(String prevWord) {
-            switch(prevWord){
-                case "1": return true;
-                case "2": return true;
-                case "3": return true;
-                case "4": return true;
-                case "5": return true;
-                case "6": return true;
-                case "7": return true;
-                case "8": return true;
-                case "9": return true;
-                case "10": return true;
-                default: return false;
-            }
-
+    private boolean checkIfNumber(String prevWord) {
+        switch (prevWord) {
+            case "1":
+                return true;
+            case "2":
+                return true;
+            case "3":
+                return true;
+            case "4":
+                return true;
+            case "5":
+                return true;
+            case "6":
+                return true;
+            case "7":
+                return true;
+            case "8":
+                return true;
+            case "9":
+                return true;
+            case "10":
+                return true;
+            default:
+                return false;
         }
+
+    }
 }
