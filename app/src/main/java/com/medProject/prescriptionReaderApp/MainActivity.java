@@ -32,14 +32,20 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private ImageView imageView;
     private Button captureButton, detectButton;
     private TextView recognizedText;
-
-    private String currentPhotoPath;
     private Bitmap imageBitmap;
+    int medicineNameBlock;
+    int directionsOfUseBlock;
+    String unitOfMeasure;
+    String numberOfUnits;
+    String dayFrequency;
+    String frequency;
+    List<FirebaseVisionText.TextBlock> blocks;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
