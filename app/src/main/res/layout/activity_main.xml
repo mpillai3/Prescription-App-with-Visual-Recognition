@@ -30,7 +30,8 @@
                 android:id="@+id/imageView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="480dp" />
+                android:minHeight="480dp"
+                android:maxHeight="1000dp" />
 
             <TextView
                 android:id="@+id/recognizedText"

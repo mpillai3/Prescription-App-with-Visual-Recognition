@@ -2,7 +2,10 @@ package com.medProject.prescriptionReaderApp;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -13,14 +16,18 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private Button captureButton, detectButton;
     private TextView recognizedText;
+
+    private String currentPhotoPath;
     private Bitmap imageBitmap;
 
     @Override
@@ -69,8 +78,8 @@ public class MainActivity extends AppCompatActivity {
      */
     private void detectTextFromImage() {
         FirebaseVisionImage firebaseVisionImage = FirebaseVisionImage.fromBitmap(imageBitmap);
-        FirebaseVisionTextRecognizer firebaseVisionTextRecognizer =  FirebaseVision.getInstance().getOnDeviceTextRecognizer();
-        firebaseVisionTextRecognizer.processImage(firebaseVisionImage).addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
+        FirebaseVisionTextRecognizer firebaseVisionTextRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+        Task<FirebaseVisionText> firebaseVisionTextTask = firebaseVisionTextRecognizer.processImage(firebaseVisionImage).addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
             @Override
             public void onSuccess(FirebaseVisionText firebaseVisionText) {
                 displayText(firebaseVisionText);
@@ -103,9 +112,21 @@ public class MainActivity extends AppCompatActivity {
      * Brind up the window to capture a picture
      */
     private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        // this means we only store a single picture and override the previous one with the new one
+        String fileName = "photo";
+        File file = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        try {
+            File imageFile = File.createTempFile(fileName, ".jpg", file);
+            currentPhotoPath = imageFile.getAbsolutePath();
+
+            Uri imageUri = FileProvider.getUriForFile(MainActivity.this,
+                    "com.medProject.prescriptionReaderApp.fileprovider", imageFile);
+
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+            startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -113,8 +134,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            imageBitmap = (Bitmap) extras.get("data");
+            imageBitmap = BitmapFactory.decodeFile(currentPhotoPath);
             imageView.setImageBitmap(imageBitmap);
         }
     }
