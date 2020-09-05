@@ -1,34 +1,39 @@
-package com.medProject.prescriptionReaderApp;
 
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
+        package com.medProject.prescriptionReaderApp;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.text.FirebaseVisionText;
-import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+        import android.content.Intent;
+        import android.graphics.Bitmap;
+        import android.graphics.BitmapFactory;
+        import android.net.Uri;
+        import android.os.Bundle;
+        import android.os.Environment;
+        import android.provider.MediaStore;
+        import android.util.Log;
+        import android.view.View;
+        import android.widget.Button;
+        import android.widget.ImageView;
+        import android.widget.TextView;
+        import android.widget.Toast;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
+        import androidx.annotation.NonNull;
+        import androidx.appcompat.app.AppCompatActivity;
+        import androidx.core.content.FileProvider;
+
+        import com.google.android.gms.tasks.OnFailureListener;
+        import com.google.android.gms.tasks.OnSuccessListener;
+        import com.google.android.gms.tasks.Task;
+        import com.google.firebase.ml.vision.FirebaseVision;
+        import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+        import com.google.firebase.ml.vision.document.FirebaseVisionDocumentText;
+        import com.google.firebase.ml.vision.document.FirebaseVisionDocumentTextRecognizer;
+        import com.google.firebase.ml.vision.text.FirebaseVisionText;
+        import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
+        import com.google.firebase.ml.vision.text.FirebaseVisionCloudTextRecognizerOptions;
+
+        import java.io.File;
+        import java.io.IOException;
+        import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     String numberOfUnits;
     String dayFrequency;
     String frequency;
-    List<FirebaseVisionText.TextBlock> blocks;
+    List<FirebaseVisionDocumentText.Block> blocks;
     private String currentPhotoPath;
 
     @Override
@@ -91,11 +96,12 @@ public class MainActivity extends AppCompatActivity {
      */
     private void detectTextFromImage() {
         FirebaseVisionImage firebaseVisionImage = FirebaseVisionImage.fromBitmap(imageBitmap);
-        FirebaseVisionTextRecognizer firebaseVisionTextRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
-        Task<FirebaseVisionText> firebaseVisionTextTask = firebaseVisionTextRecognizer.processImage(firebaseVisionImage).addOnSuccessListener(new OnSuccessListener<FirebaseVisionText>() {
+        FirebaseVisionDocumentTextRecognizer firebaseVisionTextRecognizer = FirebaseVision.getInstance().getCloudDocumentTextRecognizer();
+        //FirebaseVisionTextRecognizer firebaseVisionTextRecognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
+        Task<FirebaseVisionDocumentText> firebaseVisionTextTask = firebaseVisionTextRecognizer.processImage(firebaseVisionImage).addOnSuccessListener(new OnSuccessListener<FirebaseVisionDocumentText>() {
             @Override
-            public void onSuccess(FirebaseVisionText firebaseVisionText) {
-                categorizeBlocks(firebaseVisionText);
+            public void onSuccess(FirebaseVisionDocumentText firebaseVisionDocumentText) {
+                categorizeBlocks(firebaseVisionDocumentText);
                 displayText();
             }
         }).addOnFailureListener(new OnFailureListener() {
@@ -106,6 +112,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
+
 
     /**
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
@@ -121,29 +130,38 @@ public class MainActivity extends AppCompatActivity {
     this is code to categorize the blocks into the ones that are useful to us - the textblock with the name of the medicine and
     the text block with the directions of use
     */
-    private void categorizeBlocks(FirebaseVisionText firebaseVisionText) {
+    private void categorizeBlocks(FirebaseVisionDocumentText firebaseVisionText) {
 
-        blocks = firebaseVisionText.getTextBlocks();
+        blocks = firebaseVisionText.getBlocks();
         if (blocks.isEmpty())
             Toast.makeText(this, "No text in image", Toast.LENGTH_SHORT).show();
         else
             for (int i = 0; i < blocks.size(); i++) {
-                List<FirebaseVisionText.Line> lines = blocks.get(i).getLines();
+               // System.out.println(blocks.get(i).getText().toString().toLowerCase());
+                List<FirebaseVisionDocumentText.Paragraph> paras = blocks.get(i).getParagraphs();
 
-                for (int j = 0; j < lines.size(); j++) {
-                    List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
-
+                for (int j = 0; j < paras.size(); j++) {
+                    List<FirebaseVisionDocumentText.Word> elements = paras.get(j).getWords();
+                    //System.out.println(elements);
                     for (int k = 0; k < elements.size(); k++) {
-                        String word = elements.get(k).getText().toLowerCase();
-                        if (word == "take" || word == "taken") {
-                            directionsOfUseBlock = i;
-                            extractDetails(blocks);
-                        } else if (word.length() > 1 && (word.substring(word.length() - 2, word.length() - 1) == "mg" || (word.substring(word.length() - 2, word.length() - 1) == "ml"))) {
-                            medicineNameBlock = i;
-                        } else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1) == "g" || (word.substring(word.length() - 1, word.length() - 1) == "l"))) {
-                            medicineNameBlock = i;
+                        String el = elements.get(k).getText().toString().toLowerCase();
+                        String [] lines = el.split(System.getProperty("line.separator"));
+                        for (int l = 0; l < lines.length; l++) {
+                            String word = lines[l].trim();
+                            System.out.println(word);
+
+                            if (word == "take" || word == "taken") {
+                                System.out.println("FOUND DIRECTIONS");
+                                directionsOfUseBlock = i;
+                                extractDetails(blocks);
+                            } else if (word.length() > 1 && (word.substring(word.length() - 2, word.length() - 1) == "mg" || (word.substring(word.length() - 2, word.length() - 1) == "ml"))) {
+                                medicineNameBlock = i;
+                            } else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1) == "g" || (word.substring(word.length() - 1, word.length() - 1) == "l"))) {
+                                medicineNameBlock = i;
+                            }System.out.println("Next statement");
                         }
-                    }
+                }
+
                 }
             }
     }
@@ -185,14 +203,15 @@ public class MainActivity extends AppCompatActivity {
     - see display text function
     */
 
-    private void extractDetails(List<FirebaseVisionText.TextBlock> blocks) {
-        List<FirebaseVisionText.Line> lines = blocks.get(directionsOfUseBlock).getLines();
+    private void extractDetails(List<FirebaseVisionDocumentText.Block> blocks) {
+        List<FirebaseVisionDocumentText.Paragraph> lines = blocks.get(directionsOfUseBlock).getParagraphs();
         for (int j = 0; j < lines.size(); j++) {
-            List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
+            List<FirebaseVisionDocumentText.Word> elements = lines.get(j).getWords();
 
             for (int k = 0; k < elements.size(); k++) {
                 String word = elements.get(k).getText().toLowerCase();
-                String prevWord = elements.get(k - 1).getText().toLowerCase();
+                System.out.println(word);
+                String prevWord = elements.get(k - 1).getText().toString().toLowerCase();
                 switch (word) {
                     case "daily":
                         dayFrequency = word;
@@ -247,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
                         } else if (checkIfNumber(prevWord)) {
                             numberOfUnits = prevWord;
                         }
+                    default: unitOfMeasure="didnt work";
 
 
                 }
