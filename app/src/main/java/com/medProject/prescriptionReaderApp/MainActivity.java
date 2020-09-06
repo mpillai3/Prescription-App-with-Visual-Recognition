@@ -113,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 MedicineObject medObject = new MedicineObject(numberOfUnits, unitOfMeasure, frequency, dayFrequency);
                 reference.child(medicineName1 + " " + medicineName2).setValue(medObject);
+                Toast.makeText(MainActivity.this, "MEDICATION ADDED", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -236,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
             imageView.setImageBitmap(imageBitmap);
         }
     }
-    
+
 
     /*
     This code is to analyze each word to check for keywords and store them as relevant information which is later displayed on the app as the final text
