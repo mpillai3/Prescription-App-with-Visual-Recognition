@@ -7,37 +7,55 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:padding="16dp">
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <Button
+            <ImageButton
                 android:id="@+id/takePicture"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Take Picture" />
+                android:layout_marginBottom="10dp"
+                android:background="@color/colorAccent"
+                android:src="@android:drawable/ic_menu_camera" />
 
-            <Button
-                android:id="@+id/detectText"
+            <ImageButton
+                android:id="@+id/detect"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Detect Text" />
+                android:layout_marginBottom="10dp"
+                android:background="@color/colorAccent"
+                android:src="@android:drawable/ic_menu_search"
+                android:layout_below="@id/takePicture" />
+
 
             <ImageView
                 android:id="@+id/imageView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="480dp"
-                android:maxHeight="1000dp" />
+                android:layout_below="@+id/detect"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="10dp" />
 
             <TextView
                 android:id="@+id/recognizedText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/imageView" />
+
+            <ImageButton
+                android:id="@+id/addMedBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@color/colorAccent"
+                android:src="@android:drawable/ic_menu_search"
+                android:layout_below="@id/recognizedText" />
+        </RelativeLayout>
     </ScrollView>
 
 </RelativeLayout>

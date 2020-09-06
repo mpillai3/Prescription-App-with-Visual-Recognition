@@ -1,59 +1,62 @@
 
 
-        package com.medProject.prescriptionReaderApp;
+package com.medProject.prescriptionReaderApp;
 
-        import android.content.Intent;
-        import android.graphics.Bitmap;
-        import android.graphics.BitmapFactory;
-        import android.net.Uri;
-        import android.os.Bundle;
-        import android.os.Environment;
-        import android.provider.MediaStore;
-        import android.util.Log;
-        import android.view.View;
-        import android.widget.Button;
-        import android.widget.ImageView;
-        import android.widget.TextView;
-        import android.widget.Toast;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
-        import androidx.annotation.NonNull;
-        import androidx.appcompat.app.AppCompatActivity;
-        import androidx.core.content.FileProvider;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
-        import com.google.android.gms.tasks.OnFailureListener;
-        import com.google.android.gms.tasks.OnSuccessListener;
-        import com.google.android.gms.tasks.Task;
-        import com.google.firebase.ml.vision.FirebaseVision;
-        import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-        import com.google.firebase.ml.vision.document.FirebaseVisionDocumentText;
-        import com.google.firebase.ml.vision.document.FirebaseVisionDocumentTextRecognizer;
-        import com.google.firebase.ml.vision.text.FirebaseVisionText;
-        import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
-        import com.google.firebase.ml.vision.text.FirebaseVisionCloudTextRecognizerOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.ml.vision.FirebaseVision;
+import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+import com.google.firebase.ml.vision.document.FirebaseVisionDocumentText;
+import com.google.firebase.ml.vision.document.FirebaseVisionDocumentTextRecognizer;
 
-        import java.io.File;
-        import java.io.IOException;
-        import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
-
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private ImageView imageView;
-    private Button captureButton, detectButton;
+    private ImageButton captureButton, detectButton, addMedButton;
     private TextView recognizedText;
     private Bitmap imageBitmap;
     int medicineNameBlock;
-    String medicineName2=null;
-    String medicineName1=null;
+    String medicineName2 = "";
+    String medicineName1 = "";
     int directionsOfUseBlock = 100000;
-    String unitOfMeasure= null;
-    String numberOfUnits=null;
+    String unitOfMeasure = null;
+    String numberOfUnits = null;
     String dayFrequency = null;
-    String frequency=null;
+    String frequency = null;
     List<FirebaseVisionDocumentText.Block> blocks;
     private String currentPhotoPath;
+    TextToSpeech speechTool;
+    FirebaseDatabase rootNode;
+    DatabaseReference userRef, reference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,12 +65,27 @@ public class MainActivity extends AppCompatActivity {
 
         imageView = findViewById(R.id.imageView);
 
+        addMedButton = findViewById(R.id.addMedBtn);
         captureButton = findViewById(R.id.takePicture);
-
-        detectButton = findViewById(R.id.detectText);
+        detectButton = findViewById(R.id.detect);
         detectButton.setEnabled(false);
 
         recognizedText = findViewById(R.id.recognizedText);
+
+//        Picasso.get().load("https://cdn.discordapp.com/attachments/750832888857231371/751991880266547220/free-image-resizer-cropper_35.png").into(imageView);
+
+        rootNode = FirebaseDatabase.getInstance();
+        userRef = rootNode.getReference("Users");
+        reference = userRef.child("John Doe");
+
+        speechTool = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if (status != TextToSpeech.ERROR) {
+                    speechTool.setLanguage(Locale.US);
+                }
+            }
+        });
 
         /*
         Capture a picture when the user clicks on the button
@@ -81,9 +99,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        /*
-        Start the text detection process
-         */
         detectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -91,6 +106,16 @@ public class MainActivity extends AppCompatActivity {
                 detectButton.setEnabled(false);
             }
         });
+
+        addMedButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                MedicineObject medObject = new MedicineObject(numberOfUnits, unitOfMeasure, frequency, dayFrequency);
+                reference.child(medicineName1 + " " + medicineName2).setValue(medObject);
+            }
+        });
+
     }
 
     /**
@@ -116,14 +141,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
     /**
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
      */
     private void displayText() {
-        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
-                + "\n" + "unit of measure: " + unitOfMeasure + "\n" + "number of units: " + numberOfUnits;
+        String finalText = "Medicine Name: " + medicineName1 + " " + medicineName2 + "\n" + "Take " + numberOfUnits + " " + unitOfMeasure + " " + frequency + " times " + dayFrequency;
+        speechTool.speak(finalText, TextToSpeech.QUEUE_FLUSH, null);
         recognizedText.setText(finalText);
     }
 
@@ -139,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "No text in image", Toast.LENGTH_SHORT).show();
         else
             for (int i = 0; i < blocks.size(); i++) {
-               // System.out.println(blocks.get(i).getText().toString().toLowerCase());
+                // System.out.println(blocks.get(i).getText().toString().toLowerCase());
                 List<FirebaseVisionDocumentText.Paragraph> paras = blocks.get(i).getParagraphs();
 
                 for (int j = 0; j < paras.size(); j++) {
@@ -147,47 +170,40 @@ public class MainActivity extends AppCompatActivity {
                     //System.out.println(elements.get(2).getText());
                     for (int k = 0; k < elements.size(); k++) {
                         String word = elements.get(k).getText().toString().toLowerCase();
-                      //  String [] lines = el.split(System.getProperty("line.separator"));
-                        //for (int l = 0; l < lines.length; l++) {
-                          //  String word = lines[l].trim();
-                            //System.out.println(word);
 
-                            if ((word.equals("take") || (word.equals("taken"))) && (directionsOfUseBlock == 100000)){
-                                System.out.println("FOUND DIRECTIONS");
-                                directionsOfUseBlock = i;
-                                extractDetails(blocks);
-                            }
-                                String mySubstring = null;
-                                if (word.length()>2){
-                                    mySubstring = word.substring(word.length() - 2, word.length());
-                                }
-
-                                //System.out.println(mySubstring);
-                                if (word.length() > 2 && ((mySubstring.compareTo("mg")) ==0|| (mySubstring.compareTo("ml"))==0)){
-                                    System.out.println("you should only see this once");
-                                    //System.out.println(word);
-                                    medicineNameBlock = i;
-                                    if (k-1>-1){
-
-                                            //System.out.println(elements.get(k - 1));
-                                            medicineName2 = elements.get(k - 1).getText();
-
-                                        if ( k-2>-1) {
-                                           // System.out.println("med1");
-                                            medicineName1 = elements.get(k - 2).getText();
-                                        }
-                                    }
-
-
-                                } //else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1).equals("g") || (word.substring(word.length() - 1, word.length() - 1).equals("l")))) {
-                                    //medicineNameBlock = i;
-                                }//System.out.println("Next statement");
-                            }
+                        if ((word.equals("take") || (word.equals("taken"))) && (directionsOfUseBlock == 100000)) {
+                            System.out.println("FOUND DIRECTIONS");
+                            directionsOfUseBlock = i;
+                            extractDetails(blocks);
                         }
+                        String mySubstring = null;
+                        if (word.length() > 2) {
+                            mySubstring = word.substring(word.length() - 2, word.length());
+                        }
+
+                        //System.out.println(mySubstring);
+                        if (word.length() > 2 && ((mySubstring.compareTo("mg")) == 0 || (mySubstring.compareTo("ml")) == 0)) {
+                            System.out.println("you should only see this once");
+                            //System.out.println(word);
+                            medicineNameBlock = i;
+                            if (k - 1 > -1) {
+
+                                //System.out.println(elements.get(k - 1));
+                                medicineName2 = elements.get(k - 1).getText();
+
+                                if (k - 2 > -1) {
+                                    // System.out.println("med1");
+                                    medicineName1 = elements.get(k - 2).getText();
+                                }
+                            }
+
+
+                        } //else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1).equals("g") || (word.substring(word.length() - 1, word.length() - 1).equals("l")))) {
+                        //medicineNameBlock = i;
+                    }//System.out.println("Next statement");
                 }
-
-
-
+            }
+    }
 
 
     /**
@@ -236,8 +252,8 @@ public class MainActivity extends AppCompatActivity {
                 String word = words.get(k).getText().toLowerCase().trim();
                 //System.out.println(word);
                 String prevWord = null;
-                if (k != 0){
-                     prevWord = words.get(k - 1).getText().toString().toLowerCase().trim();
+                if (k != 0) {
+                    prevWord = words.get(k - 1).getText().toString().toLowerCase().trim();
                 }
                 switch (word) {
                     case "daily":
@@ -246,12 +262,12 @@ public class MainActivity extends AppCompatActivity {
                         dayFrequency = word;
                         break;
                     case "day":
-                        if (prevWord.equals("a")){
+                        if (prevWord.equals("a")) {
                             dayFrequency = "daily";
                         }
                         break;
                     case "week":
-                        if (prevWord.equals("a")){
+                        if (prevWord.equals("a")) {
                             dayFrequency = "weekly";
                         }
                         break;
@@ -355,28 +371,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private boolean checkIfNumber(String prevWord) {
         switch (prevWord) {
             case "1":
-                return true;
-            case "2":
-                return true;
-            case "3":
-                return true;
-            case "4":
-                return true;
-            case "5":
-                return true;
-            case "6":
-                return true;
-            case "7":
-                return true;
-            case "8":
-                return true;
-            case "9":
-                return true;
             case "10":
+            case "9":
+            case "8":
+            case "7":
+            case "6":
+            case "5":
+            case "4":
+            case "3":
+            case "2":
                 return true;
             default:
                 return false;
