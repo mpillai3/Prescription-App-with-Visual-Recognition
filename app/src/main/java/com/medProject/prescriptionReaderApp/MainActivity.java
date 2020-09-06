@@ -9,6 +9,7 @@
         import android.os.Bundle;
         import android.os.Environment;
         import android.provider.MediaStore;
+        import android.speech.tts.TextToSpeech;
         import android.util.Log;
         import android.view.View;
         import android.widget.Button;
@@ -34,8 +35,9 @@
         import java.io.File;
         import java.io.IOException;
         import java.util.List;
+        import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+        public class MainActivity extends AppCompatActivity {
 
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
@@ -45,8 +47,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView recognizedText;
     private Bitmap imageBitmap;
     int medicineNameBlock;
-    String medicineName2=null;
-    String medicineName1=null;
+    String medicineName2="";
+    String medicineName1="";
     int directionsOfUseBlock = 100000;
     String unitOfMeasure= null;
     String numberOfUnits=null;
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     String frequency=null;
     List<FirebaseVisionDocumentText.Block> blocks;
     private String currentPhotoPath;
+    TextToSpeech speechTool;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +71,17 @@ public class MainActivity extends AppCompatActivity {
         detectButton.setEnabled(false);
 
         recognizedText = findViewById(R.id.recognizedText);
+
+        speechTool = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener(){
+
+                    @Override
+                    public void onInit(int status) {
+                        if(status != TextToSpeech.ERROR){
+                            speechTool.setLanguage(Locale.US);
+                        }
+                    }
+                });
+
 
         /*
         Capture a picture when the user clicks on the button
@@ -122,8 +136,10 @@ public class MainActivity extends AppCompatActivity {
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
      */
     private void displayText() {
-        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
-                + "\n" + "unit of measure: " + unitOfMeasure + "\n" + "number of units: " + numberOfUnits;
+        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "Take " + numberOfUnits + " " + unitOfMeasure+ " "+ frequency +" times " + dayFrequency;
+        speechTool.speak(finalText, TextToSpeech.QUEUE_FLUSH,null);
+
+
         recognizedText.setText(finalText);
     }
 
@@ -147,10 +163,7 @@ public class MainActivity extends AppCompatActivity {
                     //System.out.println(elements.get(2).getText());
                     for (int k = 0; k < elements.size(); k++) {
                         String word = elements.get(k).getText().toString().toLowerCase();
-                      //  String [] lines = el.split(System.getProperty("line.separator"));
-                        //for (int l = 0; l < lines.length; l++) {
-                          //  String word = lines[l].trim();
-                            //System.out.println(word);
+
 
                             if ((word.equals("take") || (word.equals("taken"))) && (directionsOfUseBlock == 100000)){
                                 System.out.println("FOUND DIRECTIONS");
