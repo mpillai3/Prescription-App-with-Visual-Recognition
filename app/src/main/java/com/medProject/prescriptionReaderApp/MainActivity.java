@@ -9,6 +9,7 @@
         import android.os.Bundle;
         import android.os.Environment;
         import android.provider.MediaStore;
+        import android.speech.tts.TextToSpeech;
         import android.util.Log;
         import android.view.View;
         import android.widget.Button;
@@ -20,9 +21,12 @@
         import androidx.appcompat.app.AppCompatActivity;
         import androidx.core.content.FileProvider;
 
+        import com.medProject.prescriptionReaderApp.MedicineObject;
         import com.google.android.gms.tasks.OnFailureListener;
         import com.google.android.gms.tasks.OnSuccessListener;
         import com.google.android.gms.tasks.Task;
+        import com.google.firebase.database.DatabaseReference;
+        import com.google.firebase.database.FirebaseDatabase;
         import com.google.firebase.ml.vision.FirebaseVision;
         import com.google.firebase.ml.vision.common.FirebaseVisionImage;
         import com.google.firebase.ml.vision.document.FirebaseVisionDocumentText;
@@ -34,19 +38,20 @@
         import java.io.File;
         import java.io.IOException;
         import java.util.List;
+        import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+        public class MainActivity extends AppCompatActivity {
 
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     private ImageView imageView;
-    private Button captureButton, detectButton;
+    private Button captureButton, detectButton, addMedButton;
     private TextView recognizedText;
     private Bitmap imageBitmap;
     int medicineNameBlock;
-    String medicineName2=null;
-    String medicineName1=null;
+    String medicineName2="";
+    String medicineName1="";
     int directionsOfUseBlock = 100000;
     String unitOfMeasure= null;
     String numberOfUnits=null;
@@ -54,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     String frequency=null;
     List<FirebaseVisionDocumentText.Block> blocks;
     private String currentPhotoPath;
+    TextToSpeech speechTool;
+    FirebaseDatabase rootNode;
+    DatabaseReference userRef, reference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,9 +73,26 @@ public class MainActivity extends AppCompatActivity {
         captureButton = findViewById(R.id.takePicture);
 
         detectButton = findViewById(R.id.detectText);
+
+        addMedButton = findViewById(R.id.medAddBtn);
         detectButton.setEnabled(false);
 
         recognizedText = findViewById(R.id.recognizedText);
+
+        rootNode = FirebaseDatabase.getInstance();
+        userRef = rootNode.getReference("Users");
+        reference = userRef.child("John Doe");
+
+        speechTool = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener(){
+
+                    @Override
+                    public void onInit(int status) {
+                        if(status != TextToSpeech.ERROR){
+                            speechTool.setLanguage(Locale.US);
+                        }
+                    }
+                });
+
 
         /*
         Capture a picture when the user clicks on the button
@@ -78,6 +103,16 @@ public class MainActivity extends AppCompatActivity {
                 dispatchTakePictureIntent();
                 recognizedText.setText("");
                 detectButton.setEnabled(true);
+            }
+        });
+
+        addMedButton.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View view) {
+                MedicineObject medObject = new MedicineObject(numberOfUnits, unitOfMeasure, frequency, dayFrequency);
+                reference.child(medicineName1 + " "+ medicineName2).setValue(medObject);
+
             }
         });
 
@@ -122,8 +157,10 @@ public class MainActivity extends AppCompatActivity {
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
      */
     private void displayText() {
-        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
-                + "\n" + "unit of measure: " + unitOfMeasure + "\n" + "number of units: " + numberOfUnits;
+        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "Take " + numberOfUnits + " " + unitOfMeasure+ " "+ frequency +" times " + dayFrequency;
+        speechTool.speak(finalText, TextToSpeech.QUEUE_FLUSH,null);
+
+
         recognizedText.setText(finalText);
     }
 
@@ -147,10 +184,7 @@ public class MainActivity extends AppCompatActivity {
                     //System.out.println(elements.get(2).getText());
                     for (int k = 0; k < elements.size(); k++) {
                         String word = elements.get(k).getText().toString().toLowerCase();
-                      //  String [] lines = el.split(System.getProperty("line.separator"));
-                        //for (int l = 0; l < lines.length; l++) {
-                          //  String word = lines[l].trim();
-                            //System.out.println(word);
+
 
                             if ((word.equals("take") || (word.equals("taken"))) && (directionsOfUseBlock == 100000)){
                                 System.out.println("FOUND DIRECTIONS");
