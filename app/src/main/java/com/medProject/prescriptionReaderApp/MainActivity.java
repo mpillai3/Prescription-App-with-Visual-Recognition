@@ -45,11 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView recognizedText;
     private Bitmap imageBitmap;
     int medicineNameBlock;
+    String medicineName2=null;
+    String medicineName1=null;
     int directionsOfUseBlock = 100000;
-    String unitOfMeasure;
-    String numberOfUnits;
-    String dayFrequency;
-    String frequency;
+    String unitOfMeasure= null;
+    String numberOfUnits=null;
+    String dayFrequency = null;
+    String frequency=null;
     List<FirebaseVisionDocumentText.Block> blocks;
     private String currentPhotoPath;
 
@@ -120,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
      * Displays the final result of the text recognized, analyzed and categorized to fit into a scheduling app
      */
     private void displayText() {
-        String finalText = "Medicine Name: " + blocks.get(medicineNameBlock).getText() + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
+        String finalText = "Medicine Name: " + medicineName1+ " "+ medicineName2 + "\n" + "frequency: " + frequency + "\n" + "Day Frequency: " + dayFrequency
                 + "\n" + "unit of measure: " + unitOfMeasure + "\n" + "number of units: " + numberOfUnits;
         recognizedText.setText(finalText);
     }
@@ -142,29 +144,51 @@ public class MainActivity extends AppCompatActivity {
 
                 for (int j = 0; j < paras.size(); j++) {
                     List<FirebaseVisionDocumentText.Word> elements = paras.get(j).getWords();
-                    //System.out.println(elements);
+                    //System.out.println(elements.get(2).getText());
                     for (int k = 0; k < elements.size(); k++) {
-                        String el = elements.get(k).getText().toString().toLowerCase();
-                        String [] lines = el.split(System.getProperty("line.separator"));
-                        for (int l = 0; l < lines.length; l++) {
-                            String word = lines[l].trim();
-                            System.out.println(word);
+                        String word = elements.get(k).getText().toString().toLowerCase();
+                      //  String [] lines = el.split(System.getProperty("line.separator"));
+                        //for (int l = 0; l < lines.length; l++) {
+                          //  String word = lines[l].trim();
+                            //System.out.println(word);
 
                             if ((word.equals("take") || (word.equals("taken"))) && (directionsOfUseBlock == 100000)){
                                 System.out.println("FOUND DIRECTIONS");
                                 directionsOfUseBlock = i;
                                 extractDetails(blocks);
-                            } else if (word.length() > 1 && (word.substring(word.length() - 2, word.length() - 1) == "mg" || (word.substring(word.length() - 2, word.length() - 1) == "ml"))) {
-                                medicineNameBlock = i;
-                            } else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1) == "g" || (word.substring(word.length() - 1, word.length() - 1) == "l"))) {
-                                medicineNameBlock = i;
-                            }//System.out.println("Next statement");
+                            }
+                                String mySubstring = null;
+                                if (word.length()>2){
+                                    mySubstring = word.substring(word.length() - 2, word.length());
+                                }
+
+                                //System.out.println(mySubstring);
+                                if (word.length() > 2 && ((mySubstring.compareTo("mg")) ==0|| (mySubstring.compareTo("ml"))==0)){
+                                    System.out.println("you should only see this once");
+                                    //System.out.println(word);
+                                    medicineNameBlock = i;
+                                    if (k-1>-1){
+
+                                            //System.out.println(elements.get(k - 1));
+                                            medicineName2 = elements.get(k - 1).getText();
+
+                                        if ( k-2>-1) {
+                                           // System.out.println("med1");
+                                            medicineName1 = elements.get(k - 2).getText();
+                                        }
+                                    }
+
+
+                                } //else if (word.length() > 1 && (word.substring(word.length() - 1, word.length() - 1).equals("g") || (word.substring(word.length() - 1, word.length() - 1).equals("l")))) {
+                                    //medicineNameBlock = i;
+                                }//System.out.println("Next statement");
+                            }
                         }
                 }
 
-                }
-            }
-    }
+
+
+
 
     /**
      * Brind up the window to capture a picture
@@ -210,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
 
             for (int k = 0; k < words.size(); k++) {
                 String word = words.get(k).getText().toLowerCase().trim();
-                System.out.println(word);
+                //System.out.println(word);
                 String prevWord = null;
                 if (k != 0){
                      prevWord = words.get(k - 1).getText().toString().toLowerCase().trim();
