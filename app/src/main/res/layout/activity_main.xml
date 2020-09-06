@@ -1,32 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     tools:context=".MainActivity">
-
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="16dp">
+        android:layout_height="wrap_content"
+        android:scaleType="fitStart"
+        android:padding="1dp">
 
-        <RelativeLayout
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <ImageButton
                 android:id="@+id/takePicture"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="60dp"
                 android:layout_marginBottom="10dp"
+                android:layout_marginTop = "10dp"
                 android:background="@color/colorAccent"
                 android:src="@android:drawable/ic_menu_camera" />
 
             <ImageButton
                 android:id="@+id/detect"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="50dp"
                 android:layout_marginBottom="10dp"
                 android:background="@color/colorAccent"
                 android:src="@android:drawable/ic_menu_search"
@@ -38,8 +39,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/detect"
-                android:layout_marginTop="10dp"
-                android:layout_marginBottom="10dp" />
+                android:layout_marginTop="1dp"
+                android:layout_marginBottom="10dp"
+                android:adjustViewBounds="true"/>
 
             <TextView
                 android:id="@+id/recognizedText"
@@ -50,12 +52,11 @@
             <ImageButton
                 android:id="@+id/addMedBtn"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_height="50dp"
+                android:layout_marginTop="1dp"
                 android:background="@color/colorAccent"
-                android:src="@android:drawable/ic_menu_search"
+                android:src="@android:drawable/ic_menu_add"
                 android:layout_below="@id/recognizedText" />
-        </RelativeLayout>
+        </LinearLayout>
     </ScrollView>
-
-</RelativeLayout>
+</LinearLayout>
